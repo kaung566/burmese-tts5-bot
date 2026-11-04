@@ -8,9 +8,9 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQ
 from pyrogram.enums import ChatMemberStatus
 
 # --- CONFIGURATION ---
-API_ID = int(os.environ.get("API_ID", 12345678))          # Koyeb Env (သို့) မိမိ Telegram API ID
-API_HASH = os.environ.get("API_HASH", "YOUR_API_HASH")    # Koyeb Env (သို့) မိမိ Telegram API Hash
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_BOT_TOKEN") # Koyeb Env (သို့) မိမိ Telegram Bot Token
+API_ID = int(os.environ.get("API_ID", 32971636))          # Koyeb Env (သို့) မိမိ Telegram API ID
+API_HASH = os.environ.get("API_HASH", "54178f4e37ec82caaa218ff1a2d8e8c0")    # Koyeb Env (သို့) မိမိ Telegram API Hash
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "9283733881:AAFInOE6EZoB6Ypb7WppgT8lFfkmqMBUolU") # Koyeb Env (သို့) မိမိ Telegram Bot Token
 PORT = int(os.environ.get("PORT", 8080))
 
 # Force Join Channels
