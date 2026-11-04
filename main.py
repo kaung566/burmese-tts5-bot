@@ -1,22 +1,18 @@
 import os
 import uuid
-import asyncio
 import edge_tts
-from aiohttp import web
-from pyrogram import Client, filters, idle
+from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.enums import ChatMemberStatus
 
 # --- CONFIGURATION ---
-API_ID = int(os.environ.get("API_ID", 32971636))          # Koyeb Env (သို့) မိမိ Telegram API ID
-API_HASH = os.environ.get("API_HASH", "54178f4e37ec82caaa218ff1a2d8e8c0")    # Koyeb Env (သို့) မိမိ Telegram API Hash
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "9283733881:AAFInOE6EZoB6Ypb7WppgT8lFfkmqMBUolU") # Koyeb Env (သို့) မိမိ Telegram Bot Token
-PORT = int(os.environ.get("PORT", 8080))
+API_ID = int(os.environ.get("API_ID", 32971636))          # မိမိ Telegram API ID
+API_HASH = os.environ.get("API_HASH", "54178f4e37ec82caaa218ff1a2d8e8c0")    # မိမိ Telegram API Hash
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "9283733881:AAFInOE6EZoB6Ypb7WppgT8lFfkmqMBUolU") # FadeHost မှ အလိုအလျောက် ယူပါမည်
 
-# Force Join Channels
-FORCE_CHANNELS = ["movierecaps6", "movierecaps67"]
+# Force Join Channels (@ ထည့်သွင်းထားပါသည်)
+FORCE_CHANNELS = ["@movierecaps6", "@movierecaps67"]
 
-# Concurrency အတွက် workers=30 ဖြင့် အပြိုင်ထုတ်လုပ်နိုင်အောင် တည်ဆောက်ထားသည်
 app = Client(
     "burmese_tts_bot",
     api_id=API_ID,
@@ -31,7 +27,7 @@ user_settings = {}
 
 # အသံ ၁၄ မျိုး သတ်မှတ်ချက်များ
 VOICES = {
-    "v1":  {"name": "မောင်ကောက်",   "voice": "my-MM-ThihaNeural",                 "gender": "male",   "rate": "+18%", "pitch": "+0Hz"},
+    "v1":  {"name": "မောင်ကောင်း",   "voice": "my-MM-ThihaNeural",                 "gender": "male",   "rate": "+18%", "pitch": "+0Hz"},
     "v2":  {"name": "မယ်ဖွား",      "voice": "my-MM-NilarNeural",                 "gender": "female", "rate": "+18%", "pitch": "+0Hz"},
     "v3":  {"name": "မောင်ရွှေဦး",   "voice": "it-IT-GiuseppeMultilingualNeural",  "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
     "v4":  {"name": "မောင်သာအောင်", "voice": "en-AU-WilliamMultilingualNeural",   "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
@@ -111,7 +107,6 @@ def build_voice_keyboard(user_id):
     buttons = []
     keys = list(VOICES.keys())
 
-    # အသံ ၁၄ မျိုး ခလုတ် ၂ ခုစီ တန်းစီခြင်း
     for i in range(0, len(keys), 2):
         row = []
         k1 = keys[i]
@@ -124,19 +119,14 @@ def build_voice_keyboard(user_id):
             row.append(InlineKeyboardButton(f"{icon2}{VOICES[k2]['name']}", callback_data=f"setv|{k2}"))
         buttons.append(row)
 
-    # အသံစမ်းသပ်ရန် ခလုတ်
     buttons.append([
         InlineKeyboardButton("🔊 လက်ရှိရွေးထားသော အသံကို စမ်းနားထောင်ရန်", callback_data="preview_voice")
     ])
 
-    # Speed & Pitch Preset ခလုတ်များ
-    curr_spd = SPEED_PRESETS.get(conf["speed"], conf["speed"])
-    curr_ptc = PITCH_PRESETS.get(conf["pitch"], conf["pitch"])
     buttons.append([
         InlineKeyboardButton(f"⚡ Speed: {conf['speed']}", callback_data="menu_speed"),
         InlineKeyboardButton(f"🎚️ Pitch: {conf['pitch']}", callback_data="menu_pitch")
     ])
-
     return InlineKeyboardMarkup(buttons)
 
 def build_speed_keyboard(user_id):
@@ -173,6 +163,7 @@ def build_pitch_keyboard(user_id):
 @app.on_message(filters.command("start"))
 async def start_cmd(client, message):
     user_id = message.from_user.id
+    print(f"📩 /start command received from: {user_id}")
     if not await is_user_subscribed(client, user_id):
         return await message.reply(
             "⚠️ **Bot ကို အသုံးမပြုမီ အောက်ပါ Channel (၂) ခုလုံးကို မဖြစ်မနေ Join ပေးရပါမည် -**",
@@ -180,7 +171,7 @@ async def start_cmd(client, message):
         )
     await message.reply(WELCOME_TEXT, reply_markup=build_voice_keyboard(user_id))
 
-# --- 2. CALLBACK QUERY (Buttons Interaction) ---
+# --- 2. CALLBACK QUERY HANDLERS ---
 @app.on_callback_query()
 async def handle_callback(client, cq: CallbackQuery):
     user_id = cq.from_user.id
@@ -269,7 +260,6 @@ async def tts_handler(client, message):
 
     text = message.text.strip()
 
-    # စာလုံးရေ ၃၀၀၀ ကန့်သတ်ချက် စစ်ဆေးခြင်း
     if len(text) > 3000:
         return await message.reply(
             f"⚠️ **စာလုံးရေ ကန့်သတ်ချက် ကျော်လွန်နေပါသည်!**\n"
@@ -288,7 +278,6 @@ async def tts_handler(client, message):
     out_file = f"tts_{user_id}_{message.id}_{uuid.uuid4().hex[:6]}.mp3"
 
     try:
-        # Edge-TTS Async Concurrency ဖြင့် အပြိုင် ထုတ်ပေးခြင်း
         communicate = edge_tts.Communicate(text, v_data["voice"], rate=rate, pitch=pitch)
         await communicate.save(out_file)
 
@@ -310,30 +299,10 @@ async def tts_handler(client, message):
         await status_msg.edit_text(f"❌ အသံထုတ်ရာတွင် Error ဖြစ်ပွားပါသည်: `{str(e)}`")
 
     finally:
-        # Disk မပြည့်စေရန် ဒေါင်းပြီးသည်နှင့် ချက်ချင်း ဖျက်ဆီးခြင်း
         if os.path.exists(out_file):
             os.remove(out_file)
 
-# --- KOYEB HEALTH CHECK SERVER ---
-async def handle_ping(request):
-    return web.Response(text="Burmese TTS Bot is active!")
-
-async def start_web_server():
-    server = web.Application()
-    server.router.add_get("/", handle_ping)
-    server.router.add_get("/health", handle_ping)
-    runner = web.AppRunner(server)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", PORT)
-    await site.start()
-
-# --- MAIN RUNNER ---
-async def main():
-    await start_web_server()
-    await app.start()
-    print("✅ 14-Voice Burmese TTS Bot with Speed/Pitch Presets is online!")
-    await idle()
-    await app.stop()
-
+# --- RUN BOT ---
 if __name__ == "__main__":
-    asyncio.run(main())
+    print("✅ 14-Voice Burmese TTS Bot is online with app.run()!")
+    app.run()
