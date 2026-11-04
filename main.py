@@ -25,22 +25,22 @@ app = Client(
 # User တစ်ဦးချင်းစီ၏ Voice, Speed, Pitch မှတ်သားရန်
 user_settings = {}
 
-# အသံ ၁၄ မျိုး သတ်မှတ်ချက်များ
+# အသံ ၁၄ မျိုး (Thiha နှင့် Nilar ကို အခြေခံ၍ Pitch/Rate ချိန်ညှိထားသော ပုံစံများ)
 VOICES = {
-    "v1":  {"name": "မောင်ကောင်း",   "voice": "my-MM-ThihaNeural",                 "gender": "male",   "rate": "+18%", "pitch": "+0Hz"},
-    "v2":  {"name": "မယ်ဖွား",      "voice": "my-MM-NilarNeural",                 "gender": "female", "rate": "+18%", "pitch": "+0Hz"},
-    "v3":  {"name": "မောင်ရွှေဦး",   "voice": "it-IT-GiuseppeMultilingualNeural",  "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
-    "v4":  {"name": "မောင်သာအောင်", "voice": "en-AU-WilliamMultilingualNeural",   "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
-    "v5":  {"name": "ဘိုထွန်း",     "voice": "en-US-AndrewMultilingualNeural",    "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
-    "v6":  {"name": "မယ်သီရိ",     "voice": "en-US-AvaMultilingualNeural",       "gender": "female", "rate": "+15%", "pitch": "+0Hz"},
-    "v7":  {"name": "ဘအောင်",      "voice": "en-US-BrianMultilingualNeural",     "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
-    "v8":  {"name": "မြသီ",        "voice": "en-US-EmmaMultilingualNeural",      "gender": "female", "rate": "+15%", "pitch": "+0Hz"},
-    "v9":  {"name": "ဘဦး",         "voice": "fr-FR-RemyMultilingualNeural",      "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
-    "v10": {"name": "မယ်နွဲ့",      "voice": "fr-FR-VivienneMultilingualNeural",  "gender": "female", "rate": "+15%", "pitch": "+0Hz"},
-    "v11": {"name": "မယ်စိန်",      "voice": "de-DE-SeraphinaMultilingualNeural", "gender": "female", "rate": "+15%", "pitch": "+0Hz"},
-    "v12": {"name": "ဦးတောင်",      "voice": "de-DE-FlorianMultilingualNeural",   "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
-    "v13": {"name": "မယ်နန်း",      "voice": "pt-BR-ThalitaMultilingualNeural",   "gender": "female", "rate": "+15%", "pitch": "+0Hz"},
-    "v14": {"name": "ကျော်စွာ",     "voice": "ko-KR-HyunsuMultilingualNeural",    "gender": "male",   "rate": "+15%", "pitch": "+0Hz"}
+    "v1":  {"name": "မောင်ကောက်",   "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+18%", "pitch": "+0Hz"},   # ပုံမှန် မြန်မာလူငယ်သံ
+    "v2":  {"name": "မယ်ဖွား",      "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+18%", "pitch": "+0Hz"},   # ပုံမှန် မြန်မာအမျိုးသမီးသံ
+    "v3":  {"name": "မောင်ရွှေဦး",   "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+10%", "pitch": "-8Hz"},   # အသံဩ တည်ငြိမ်သံ
+    "v4":  {"name": "မောင်သာအောင်", "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+24%", "pitch": "+10Hz"},  # လူငယ် သွက်လက်သံ
+    "v5":  {"name": "ဘိုထွန်း",     "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+4%",  "pitch": "-16Hz"},  # ဘိုးဘိုး/လူကြီးသံ
+    "v6":  {"name": "မယ်သီရိ",     "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+20%", "pitch": "+12Hz"},  # အသံစူးစူး သွက်လက်သံ
+    "v7":  {"name": "ဘအောင်",      "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+12%", "pitch": "-5Hz"},   # လူလတ်ပိုင်း ရုပ်ရှင်ဇာတ်လမ်းပြောသံ
+    "v8":  {"name": "မြသီ",        "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+8%",  "pitch": "-6Hz"},   # အသံအေး တည်ငြိမ်သံ
+    "v9":  {"name": "ဘဦး",         "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+16%", "pitch": "+6Hz"},   # ဇာတ်ပို့သံ
+    "v10": {"name": "မယ်နွဲ့",      "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+16%", "pitch": "+6Hz"},   # အသံကြည် ချိုသာသံ
+    "v11": {"name": "မယ်စိန်",      "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+6%",  "pitch": "-12Hz"},  # အဒေါ်ကြီး/အဘွားသံ
+    "v12": {"name": "ဦးတောင်",      "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+8%",  "pitch": "-14Hz"},  # အသံနက်ကြီးသံ
+    "v13": {"name": "မယ်နန်း",      "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+22%", "pitch": "+16Hz"},  # ဆယ်ကျော်သက် ကောင်မလေးသံ
+    "v14": {"name": "ကျော်စွာ",     "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+24%", "pitch": "+12Hz"}   # ဆယ်ကျော်သက် ကောင်လေးသံ
 }
 
 # Speed Presets
