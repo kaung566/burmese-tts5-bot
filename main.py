@@ -1,5 +1,7 @@
 import os
+import re
 import uuid
+import asyncio
 import edge_tts
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
@@ -7,17 +9,18 @@ from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import UserNotParticipant
 
 # --- CONFIGURATION ---
-API_ID = int(os.environ.get("32971636", 2040))
-API_HASH = os.environ.get("54178f4e37ec82caaa218ff1a2d8e8c0", "b18441a1ff607e10a989891a5462e627")
+API_ID = int(os.environ.get("API_ID", 2040))
+API_HASH = os.environ.get("API_HASH", "b18441a1ff607e10a989891a5462e627")
 BOT_TOKEN = (
     os.environ.get("BOT_TOKEN")
     or os.environ.get("TELEGRAM_BOT_TOKEN")
     or os.environ.get("TOKEN")
-    or "9283733881:AAFInOE6EZoB6Ypb7WppgT8lFfkmqMBUolU"
+    or "YOUR_BOT_TOKEN"
 )
 
 # Force Join Channels
-FORCE_CHANNELS = ["@movierecaps6", "@movierecaps67"]
+CH1 = "movierecaps6"
+CH2 = "movierecaps67"
 
 app = Client(
     "burmese_tts_bot",
@@ -28,44 +31,44 @@ app = Client(
     workers=30
 )
 
-# User တစ်ဦးချင်းစီ၏ ရွေးချယ်မှုနှင့် စာသား မှတ်သားရန်
+# User တစ်ဦးချင်းစီ၏ Setting နှင့် နောက်ဆုံးပို့ထားသော စာသား မှတ်သားရန်
 user_settings = {}
 user_last_text = {}
 
-# မြန်မာစာ ၁၀၀% အလုပ်လုပ်သော အသံ ၁၄ မျိုး
+# မူရင်း အသံ ၁၄ မျိုး (Multilingual Neural Voices အပြည့်အစုံ)
 VOICES = {
-    "v1":  {"name": "မောင်ကောက်",   "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+18%", "pitch": "+0Hz"},
-    "v2":  {"name": "မယ်ဖွား",      "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+18%", "pitch": "+0Hz"},
-    "v3":  {"name": "မောင်ရွှေဦး",   "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+10%", "pitch": "-8Hz"},
-    "v4":  {"name": "မောင်သာအောင်", "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+24%", "pitch": "+10Hz"},
-    "v5":  {"name": "ဘိုထွန်း",     "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+4%",  "pitch": "-16Hz"},
-    "v6":  {"name": "မယ်သီရိ",     "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+20%", "pitch": "+12Hz"},
-    "v7":  {"name": "ဘအောင်",      "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+12%", "pitch": "-5Hz"},
-    "v8":  {"name": "မြသီ",        "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+8%",  "pitch": "-6Hz"},
-    "v9":  {"name": "ဘဦး",         "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+16%", "pitch": "+6Hz"},
-    "v10": {"name": "မယ်နွဲ့",      "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+16%", "pitch": "+6Hz"},
-    "v11": {"name": "မယ်စိန်",      "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+6%",  "pitch": "-12Hz"},
-    "v12": {"name": "ဦးတောင်",      "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+8%",  "pitch": "-14Hz"},
-    "v13": {"name": "မယ်နန်း",      "voice": "my-MM-NilarNeural", "gender": "female", "rate": "+22%", "pitch": "+16Hz"},
-    "v14": {"name": "ကျော်စွာ",     "voice": "my-MM-ThihaNeural", "gender": "male",   "rate": "+24%", "pitch": "+12Hz"}
+    "v1":  {"name": "🎙️ မောင်ဘကျော်",   "voice": "my-MM-ThihaNeural",                 "gender": "male",   "rate": "+18%", "pitch": "+0Hz"},
+    "v2":  {"name": "🎙️ မယ်ဖွား",       "voice": "my-MM-NilarNeural",                 "gender": "female", "rate": "+18%", "pitch": "+0Hz"},
+    "v3":  {"name": "🎙️ မောင်ရွှေရိုး",   "voice": "it-IT-GiuseppeMultilingualNeural",  "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
+    "v4":  {"name": "🎙️ မောင်သာဒင်",   "voice": "en-AU-WilliamMultilingualNeural",   "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
+    "v5":  {"name": "🎙️ ဘိုးထွန်း",     "voice": "en-US-AndrewMultilingualNeural",    "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
+    "v6":  {"name": "🎙️ မယ်သိင်္ဂီ",     "voice": "en-US-AvaMultilingualNeural",       "gender": "female", "rate": "+15%", "pitch": "+0Hz"},
+    "v7":  {"name": "🎙️ ဘသောင်း",     "voice": "en-US-BrianMultilingualNeural",     "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
+    "v8":  {"name": "🎙️ မြသီ",         "voice": "en-US-EmmaMultilingualNeural",      "gender": "female", "rate": "+15%", "pitch": "+0Hz"},
+    "v9":  {"name": "🎙️ ဘညွန့်",       "voice": "fr-FR-RemyMultilingualNeural",      "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
+    "v10": {"name": "🎙️ မယ်နု",        "voice": "fr-FR-VivienneMultilingualNeural",  "gender": "female", "rate": "+15%", "pitch": "+0Hz"},
+    "v11": {"name": "🎙️ မယ်စိန်",      "voice": "de-DE-SeraphinaMultilingualNeural", "gender": "female", "rate": "+15%", "pitch": "+0Hz"},
+    "v12": {"name": "🎙️ ဖိုးထောင်",     "voice": "de-DE-FlorianMultilingualNeural",   "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
+    "v13": {"name": "🎙️ မယ်နန်း",      "voice": "pt-BR-ThalitaMultilingualNeural",   "gender": "female", "rate": "+15%", "pitch": "+0Hz"},
+    "v14": {"name": "🎙️ ကျော်စွာ",      "voice": "ko-KR-HyunsuMultilingualNeural",    "gender": "male",   "rate": "+15%", "pitch": "+0Hz"},
 }
 
-# Speed Presets (အသံနှုန်း)
+# အရောင်စုံ Speed Presets
 SPEED_PRESETS = {
-    "-10%": "🐌 နှေး",
-    "+0%": "🚶 ပုံမှန်",
+    "-10%": "🐢 နှေး",
+    "+0%": "🔵 ပုံမှန်",
     "default": "⚡ မူလ",
-    "+25%": "🏃 မြန်",
-    "+35%": "🚀 အမြန်"
+    "+25%": "🟠 မြန်",
+    "+35%": "🔥 အမြန်"
 }
 
-# Pitch Presets (အသံအနိမ့်အမြင့်)
+# အရောင်စုံ Pitch Presets
 PITCH_PRESETS = {
-    "-12Hz": "🔉 အသံဩ",
-    "-6Hz": "🔉 အသံနက်",
-    "default": "🎙️ မူလ",
-    "+6Hz": "🔊 အသံမြင့်",
-    "+12Hz": "🔊 အသံစူး"
+    "-12Hz": "🟣 အသံဩ",
+    "-6Hz": "🔵 အသံနက်",
+    "default": "🟢 မူလ",
+    "+6Hz": "🟡 အသံမြင့်",
+    "+12Hz": "🔴 အသံစူး"
 }
 
 WELCOME_TEXT = (
@@ -74,6 +77,9 @@ WELCOME_TEXT = (
     "အသုံးပြုသူများ အားလုံး စိတ်ချမ်းသာ ကိုယ်ကျန်းမာစွာဖြင့် အဆင်ပြေကြပါစေခင်ဗျာ✨\n\n"
     "👇 အသံပုံစံ ကို ရွေးချယ်ပေးပါ-"
 )
+
+def clean_voice_name(raw_name: str) -> str:
+    return raw_name.replace("🎙️", "").strip()
 
 def get_user_conf(user_id):
     if user_id not in user_settings:
@@ -84,14 +90,109 @@ def get_user_conf(user_id):
         }
     return user_settings[user_id]
 
+def parse_int_val(val_str: str) -> int:
+    try:
+        return int(val_str.replace("%", "").replace("Hz", "").replace("+", ""))
+    except Exception:
+        return 0
+
 def resolve_rate_pitch(conf):
     v_data = VOICES[conf["voice"]]
     rate = v_data["rate"] if conf["speed"] == "default" else conf["speed"]
     pitch = v_data["pitch"] if conf["pitch"] == "default" else conf["pitch"]
     return v_data, rate, pitch
 
+def split_burmese_text(text: str, max_len: int = 350) -> list:
+    """စာလုံးရေ ၃၀၀၀ ကို အသံအတက်အကျ ငြိမ်စေရန် ပုဒ်မ (။) အလိုက် အပိုင်းငယ်များ ခွဲထုတ်ခြင်း"""
+    text = re.sub(r'\s+', ' ', text).strip()
+    sentences = re.split(r'(?<=[။.!?])\s*', text)
+
+    chunks = []
+    current_chunk = ""
+
+    for sentence in sentences:
+        if not sentence:
+            continue
+        if len(current_chunk) + len(sentence) + 1 <= max_len:
+            current_chunk += (" " + sentence if current_chunk else sentence)
+        else:
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+            if len(sentence) > max_len:
+                sub_parts = re.split(r'(?<=[၊,])\s*', sentence)
+                sub_chunk = ""
+                for part in sub_parts:
+                    if len(sub_chunk) + len(part) + 1 <= max_len:
+                        sub_chunk += (" " + part if sub_chunk else part)
+                    else:
+                        if sub_chunk:
+                            chunks.append(sub_chunk.strip())
+                        sub_chunk = part
+                current_chunk = sub_chunk
+            else:
+                current_chunk = sentence
+
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+
+    # အသံထွက်နိုင်သော စာလုံးပါသည့် အပိုင်းများကိုသာ စစ်ထုတ်ခြင်း
+    valid_chunks = [c for c in chunks if re.search(r'[\w\u1000-\u109F]', c)]
+    return valid_chunks if valid_chunks else [text]
+
+async def stream_chunks_to_file(chunks: list, voice: str, rate: str, pitch: str, out_file: str):
+    """အပိုင်းခွဲထားသော စာသားများကို အသံအတက်အကျ တစ်သမတ်တည်းဖြင့် MP3 တစ်ဖိုင်တည်းသို့ ပေါင်းထည့်ခြင်း"""
+    with open(out_file, "wb") as audio_file:
+        for chunk in chunks:
+            comm = edge_tts.Communicate(
+                text=chunk,
+                voice=voice,
+                rate=rate,
+                pitch=pitch,
+                volume="+0%"
+            )
+            async for message in comm.stream():
+                if message["type"] == "audio":
+                    audio_file.write(message["data"])
+
+async def synthesize_speech(text: str, v_data: dict, rate: str, pitch: str, out_file: str):
+    """ရွေးချယ်ထားသော Multilingual Voice ဖြင့် အသံအတက်အကျ ငြိမ်စွာ ထုတ်ပေးသည့် စနစ်"""
+    chunks = split_burmese_text(text, max_len=350)
+    last_err = None
+
+    # ၁။ ရွေးချယ်ထားသော Voice (ဥပမာ en-US-AndrewMultilingualNeural, ko-KR-HyunsuMultilingualNeural) ဖြင့် တိုက်ရိုက်ထုတ်ယူခြင်း
+    for _ in range(2):
+        try:
+            await stream_chunks_to_file(chunks, v_data["voice"], rate, pitch, out_file)
+            if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
+                return
+        except Exception as e:
+            last_err = e
+            await asyncio.sleep(0.4)
+
+    # ၂။ Pitch ကြောင့် ငြင်းပယ်ခံရပါက မူလ Pitch (+0Hz) ဖြင့် ထပ်မံစမ်းသပ်ခြင်း
+    if pitch != "+0Hz":
+        try:
+            await stream_chunks_to_file(chunks, v_data["voice"], rate, "+0Hz", out_file)
+            if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
+                return
+        except Exception as e:
+            last_err = e
+
+    # ၃။ အကယ်၍ Multilingual Voice က လုံးဝမထွက်သည့် အခြေအနေကြုံမှသာ မြန်မာ Native Voice ဖြင့် အရန်ထုတ်ပေးခြင်း
+    fallback_voice = "my-MM-ThihaNeural" if v_data["gender"] == "male" else "my-MM-NilarNeural"
+    try:
+        await stream_chunks_to_file(chunks, fallback_voice, rate, pitch, out_file)
+        if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
+            return
+    except Exception:
+        await stream_chunks_to_file(chunks, fallback_voice, rate, "+0Hz", out_file)
+        return
+
+    if last_err:
+        raise last_err
+
 async def is_user_subscribed(client: Client, user_id: int):
-    for ch in FORCE_CHANNELS:
+    for ch in [CH1, CH2]:
         try:
             member = await client.get_chat_member(ch, user_id)
             if member.status not in [
@@ -103,19 +204,20 @@ async def is_user_subscribed(client: Client, user_id: int):
                 return False
         except UserNotParticipant:
             return False
-        except Exception:
-            return False
+        except Exception as e:
+            print(f"FSub check warning for {ch}: {e}")
+            continue
     return True
 
 def get_fsub_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📢 Channel 1 သို့ Join ရန်", url="https://t.me/movierecaps6")],
-        [InlineKeyboardButton("📢 Channel 2 သို့ Join ရန်", url="https://t.me/movierecaps67")],
+        [InlineKeyboardButton("📢 Channel 1 သို့ Join ရန်", url=f"https://t.me/{CH1}")],
+        [InlineKeyboardButton("📢 Channel 2 သို့ Join ရန်", url=f"https://t.me/{CH2}")],
         [InlineKeyboardButton("🔄 စစ်ဆေးမည် (Verify)", callback_data="check_fsub")]
     ])
 
 def build_start_keyboard(user_id):
-    """/start နှိပ်သည့်အခါ ပြသမည့် အသံ ၁၄ မျိုးနှင့် စမ်းသပ်သံ ခလုတ်"""
+    """/start မီနူးတွင်သာ ပြသမည့် အသံ ၁၄ မျိုး ရွေးချယ်စရာ ကီးဘုတ်"""
     conf = get_user_conf(user_id)
     selected_v = conf["voice"]
     buttons = []
@@ -124,13 +226,15 @@ def build_start_keyboard(user_id):
     for i in range(0, len(keys), 2):
         row = []
         k1 = keys[i]
-        icon1 = "✅ " if k1 == selected_v else "🎙️ "
-        row.append(InlineKeyboardButton(f"{icon1}{VOICES[k1]['name']}", callback_data=f"startv|{k1}"))
+        name1 = clean_voice_name(VOICES[k1]["name"])
+        btn_text1 = f"✅ {name1}" if k1 == selected_v else VOICES[k1]["name"]
+        row.append(InlineKeyboardButton(btn_text1, callback_data=f"startv|{k1}"))
 
         if i + 1 < len(keys):
             k2 = keys[i + 1]
-            icon2 = "✅ " if k2 == selected_v else "🎙️ "
-            row.append(InlineKeyboardButton(f"{icon2}{VOICES[k2]['name']}", callback_data=f"startv|{k2}"))
+            name2 = clean_voice_name(VOICES[k2]["name"])
+            btn_text2 = f"✅ {name2}" if k2 == selected_v else VOICES[k2]["name"]
+            row.append(InlineKeyboardButton(btn_text2, callback_data=f"startv|{k2}"))
         buttons.append(row)
 
     buttons.append([
@@ -141,51 +245,52 @@ def build_start_keyboard(user_id):
 def build_panel_text(user_id, text_len):
     conf = get_user_conf(user_id)
     v_data, rate, pitch = resolve_rate_pitch(conf)
+    v_name = clean_voice_name(v_data["name"])
     return (
         f"📝 **စာလုံးရေ:** `{text_len}` / 3000 လုံး\n"
-        f"🗣️ **လက်ရှိအသံ:** `{v_data['name']}`\n"
-        f"⚡ **Speed:** `{rate}` | 🎚️ **Pitch:** `{pitch}`\n\n"
-        f"👇 အသံ၊ Speed နှင့် Pitch တို့ကို စိတ်ကြိုက်ရွေးချယ်ပြီး **အသံထုတ်မည်** ကို နှိပ်ပါ-"
+        f"🗣️ **လက်ရှိအသံ:** `{v_name}`\n"
+        f"⚡ **Speed:** `{rate}` | 🌈 **Pitch:** `{pitch}`\n\n"
+        f"👇 **Speed** နှင့် **Pitch** ကို စိတ်ကြိုက်ချိန်ညှိပြီး **အသံထုတ်မည်** ကို နှိပ်ပါ-"
     )
 
 def build_tts_panel_keyboard(user_id):
-    """စာသားပို့ပြီးသည့်အခါ အသံ ၁၄ မျိုး + Speed + Pitch + အသံထုတ်မည် ခလုတ်များ ပေါင်းစပ်ထားသော ကီးဘုတ်"""
+    """စာပို့သည့်အခါ အသံ ၁၄ မျိုး ထပ်မပြတော့ဘဲ Speed/Pitch နှင့် +/- ခလုတ်များကိုသာ အရောင်စုံဖြင့် ပြသမည့် ကီးဘုတ်"""
     conf = get_user_conf(user_id)
-    selected_v = conf["voice"]
     buttons = []
-    keys = list(VOICES.keys())
 
-    # ၁။ အသံ ၁၄ မျိုး ရွေးချယ်ရန်
-    for i in range(0, len(keys), 2):
-        row = []
-        k1 = keys[i]
-        icon1 = "✅ " if k1 == selected_v else "🎙️ "
-        row.append(InlineKeyboardButton(f"{icon1}{VOICES[k1]['name']}", callback_data=f"panelv|{k1}"))
-
-        if i + 1 < len(keys):
-            k2 = keys[i + 1]
-            icon2 = "✅ " if k2 == selected_v else "🎙️ "
-            row.append(InlineKeyboardButton(f"{icon2}{VOICES[k2]['name']}", callback_data=f"panelv|{k2}"))
-        buttons.append(row)
-
-    # ၂။ Speed (အသံနှုန်း) ချိန်ညှိရန် ခလုတ်တန်း
+    # ၁။ Speed Presets (အရောင်စုံ ခလုတ်တန်း)
     spd_row = []
     for spd_key, spd_label in SPEED_PRESETS.items():
         mark = "✅" if conf["speed"] == spd_key else ""
         spd_row.append(InlineKeyboardButton(f"{mark}{spd_label}", callback_data=f"spd|{spd_key}"))
     buttons.append(spd_row)
 
-    # ၃။ Pitch (အသံအနိမ့်အမြင့်) ချိန်ညှိရန် ခလုတ်တန်း
+    # ၂။ Speed - / Speed + ချိန်ညှိရန် ခလုတ်တန်း
+    buttons.append([
+        InlineKeyboardButton("🔽 Speed -5%", callback_data="adj_spd|-5"),
+        InlineKeyboardButton("🔼 Speed +5%", callback_data="adj_spd|+5")
+    ])
+
+    # ၃။ Pitch Presets (အရောင်စုံ ခလုတ်တန်း)
     ptc_row = []
     for ptc_key, ptc_label in PITCH_PRESETS.items():
         mark = "✅" if conf["pitch"] == ptc_key else ""
         ptc_row.append(InlineKeyboardButton(f"{mark}{ptc_label}", callback_data=f"ptc|{ptc_key}"))
     buttons.append(ptc_row)
 
-    # ၄။ အသံစမ်းနားထောင်ရန် နှင့် အသံထုတ်မည် ခလုတ်
+    # ၄။ Pitch - / Pitch + ချိန်ညှိရန် ခလုတ်တန်း
     buttons.append([
-        InlineKeyboardButton("🔊 အသံစမ်းနားထောင်ရန်", callback_data="preview_voice")
+        InlineKeyboardButton("🔽 Pitch -2Hz", callback_data="adj_ptc|-2"),
+        InlineKeyboardButton("🔼 Pitch +2Hz", callback_data="adj_ptc|+2")
     ])
+
+    # ၅။ စမ်းနားထောင်ရန် နှင့် မူလအတိုင်း ပြန်ထားရန်
+    buttons.append([
+        InlineKeyboardButton("🎧 စမ်းနားထောင်ရန်", callback_data="preview_voice"),
+        InlineKeyboardButton("🔄 မူလအတိုင်း", callback_data="reset_sp")
+    ])
+
+    # ၆။ အသံထုတ်မည် ခလုတ်
     buttons.append([
         InlineKeyboardButton("🚀 အသံထုတ်မည် (Generate Audio)", callback_data="generate_tts")
     ])
@@ -203,7 +308,7 @@ async def start_cmd(client, message):
         )
     await message.reply(WELCOME_TEXT, reply_markup=build_start_keyboard(user_id))
 
-# --- 2. TEXT HANDLER (စာပို့လိုက်သည့်အခါ ရွေးချယ်စရာ Panel ပြပေးခြင်း) ---
+# --- 2. TEXT HANDLER (စာပို့လိုက်သည့်အခါ Speed/Pitch Panel ပြပေးခြင်း) ---
 @app.on_message(filters.text & ~filters.command(["start"]))
 async def receive_text_handler(client, message):
     user_id = message.from_user.id
@@ -244,25 +349,44 @@ async def handle_callback(client, cq: CallbackQuery):
         else:
             return await cq.answer("❌ Channel ၂ ခုလုံးကို မ Join ရသေးပါ။ အရင် Join ပေးပါ။", show_alert=True)
 
-    # /start မီနူးမှ အသံရွေးချယ်ခြင်း
+    # /start မီနူးမှ အသံ ၁၄ မျိုး ရွေးချယ်ခြင်း
     elif data.startswith("startv|"):
         v_key = data.split("|")[1]
         conf["voice"] = v_key
+        v_name = clean_voice_name(VOICES[v_key]["name"])
         await cq.message.edit_reply_markup(reply_markup=build_start_keyboard(user_id))
-        await cq.answer(f"အသံကို {VOICES[v_key]['name']} သို့ ပြောင်းလိုက်ပါပြီ။")
+        await cq.answer(f"✅ အသံကို {v_name} သို့ ပြောင်းလိုက်ပါပြီ။")
 
-    # Text ပို့ပြီးနောက် ပေါ်လာသော Panel မှ အသံ၊ Speed၊ Pitch ပြောင်းလဲခြင်း
-    elif data.startswith(("panelv|", "spd|", "ptc|")):
-        action, val = data.split("|", 1)
-        if action == "panelv":
-            conf["voice"] = val
-            await cq.answer(f"အသံ: {VOICES[val]['name']}")
-        elif action == "spd":
+    # Speed နှင့် Pitch Preset ရွေးချယ်ခြင်း / +/- ချိန်ညှိခြင်း / Reset လုပ်ခြင်း
+    elif data.startswith(("spd|", "ptc|", "adj_spd|", "adj_ptc|")) or data == "reset_sp":
+        v_data, cur_rate, cur_pitch = resolve_rate_pitch(conf)
+
+        if data == "reset_sp":
+            conf["speed"] = "default"
+            conf["pitch"] = "default"
+            await cq.answer("🔄 မူလ Speed နှင့် Pitch သို့ ပြန်ထားလိုက်ပါပြီ။")
+
+        elif data.startswith("spd|"):
+            val = data.split("|", 1)[1]
             conf["speed"] = val
-            await cq.answer(f"Speed: {SPEED_PRESETS[val]}")
-        elif action == "ptc":
+            await cq.answer(f"⚡ Speed: {SPEED_PRESETS[val]}")
+
+        elif data.startswith("ptc|"):
+            val = data.split("|", 1)[1]
             conf["pitch"] = val
-            await cq.answer(f"Pitch: {PITCH_PRESETS[val]}")
+            await cq.answer(f"🌈 Pitch: {PITCH_PRESETS[val]}")
+
+        elif data.startswith("adj_spd|"):
+            delta = int(data.split("|", 1)[1])
+            new_spd = max(-50, min(100, parse_int_val(cur_rate) + delta))
+            conf["speed"] = f"{new_spd:+d}%"
+            await cq.answer(f"⚡ Speed: {conf['speed']}")
+
+        elif data.startswith("adj_ptc|"):
+            delta = int(data.split("|", 1)[1])
+            new_ptc = max(-30, min(30, parse_int_val(cur_pitch) + delta))
+            conf["pitch"] = f"{new_ptc:+d}Hz"
+            await cq.answer(f"🌈 Pitch: {conf['pitch']}")
 
         orig_text = ""
         if cq.message.reply_to_message and cq.message.reply_to_message.text:
@@ -270,34 +394,37 @@ async def handle_callback(client, cq: CallbackQuery):
         else:
             orig_text = user_last_text.get(user_id, "")
 
-        await cq.message.edit_text(
-            build_panel_text(user_id, len(orig_text)),
-            reply_markup=build_tts_panel_keyboard(user_id)
-        )
+        try:
+            await cq.message.edit_text(
+                build_panel_text(user_id, len(orig_text)),
+                reply_markup=build_tts_panel_keyboard(user_id)
+            )
+        except Exception:
+            pass
 
     # အသံနမူနာ စမ်းနားထောင်ခြင်း
     elif data == "preview_voice":
         v_data, rate, pitch = resolve_rate_pitch(conf)
-        sample_text = f"မင်္ဂလာပါ။ {v_data['name']} ၏ အသံစမ်းသပ်မှု ဖြစ်ပါတယ်။"
+        v_name = clean_voice_name(v_data["name"])
+        sample_text = f"မင်္ဂလာပါခင်ဗျာ။ {v_name} ရဲ့ အသံစမ်းသပ်မှု ဖြစ်ပါတယ်။"
         sample_file = f"sample_{user_id}_{uuid.uuid4().hex[:6]}.mp3"
-        await cq.answer("🔊 အသံနမူနာ ထုတ်ပေးနေပါသည်...")
+        await cq.answer("🔊 စမ်းသပ်သံ ထုတ်ပေးနေပါသည်...")
 
         try:
-            comm = edge_tts.Communicate(sample_text, v_data["voice"], rate=rate, pitch=pitch)
-            await comm.save(sample_file)
+            await synthesize_speech(sample_text, v_data, rate, pitch, sample_file)
             await client.send_audio(
                 chat_id=cq.message.chat.id,
                 audio=sample_file,
-                title=f"Sample - {v_data['name']}",
-                caption=f"🔊 **စမ်းသပ်သံ:** `{v_data['name']}`\n⚡ Speed: `{rate}` | 🎚️ Pitch: `{pitch}`"
+                title=f"Sample - {v_name}",
+                caption=f"🔊 **စမ်းသပ်သံ:** `{v_name}`\n⚡ Speed: `{rate}` | 🌈 Pitch: `{pitch}`"
             )
         except Exception as e:
-            await cq.message.reply(f"❌ စမ်းသပ်သံ ထုတ်ရာတွင် Error ဖြစ်ပွားပါသည်: `{str(e)}`")
+            await cq.message.reply(f"❌ စမ်းသပ်သံ ထုတ်ရာတွင် Error: `{str(e)}`")
         finally:
             if os.path.exists(sample_file):
                 os.remove(sample_file)
 
-    # 🚀 အသံထုတ်မည် ခလုတ်နှိပ်သည့်အခါ အပြိုင် (Concurrent) အသံထုတ်ပေးခြင်း
+    # 🚀 အသံထုတ်မည် (Generate Audio)
     elif data == "generate_tts":
         if not await is_user_subscribed(client, user_id):
             return await cq.answer("❌ Channel ၂ ခုလုံးကို အရင် Join ပေးပါ။", show_alert=True)
@@ -315,25 +442,25 @@ async def handle_callback(client, cq: CallbackQuery):
             return await cq.answer("⚠️ စာလုံးရေ ၃၀၀၀ ထက် ကျော်လွန်နေပါသည်။", show_alert=True)
 
         v_data, rate, pitch = resolve_rate_pitch(conf)
+        v_name = clean_voice_name(v_data["name"])
         await cq.answer("⏳ အသံဖိုင် စတင်ထုတ်လုပ်နေပါပြီ...")
 
         status_msg = await cq.message.reply("⏳ **အသံပြောင်းလဲနေပါသည်... ခေတ္တစောင့်ပေးပါ...**")
         out_file = f"tts_{user_id}_{uuid.uuid4().hex[:8]}.mp3"
 
         try:
-            communicate = edge_tts.Communicate(text, v_data["voice"], rate=rate, pitch=pitch)
-            await communicate.save(out_file)
+            await synthesize_speech(text, v_data, rate, pitch, out_file)
 
             caption_text = (
-                f"🗣️ **အသံ:** `{v_data['name']}`\n"
-                f"⚡ **Speed:** `{rate}` | 🎚️ **Pitch:** `{pitch}`\n"
+                f"🗣️ **အသံ:** `{v_name}`\n"
+                f"⚡ **Speed:** `{rate}` | 🌈 **Pitch:** `{pitch}`\n"
                 f"📝 **စာလုံးရေ:** `{len(text)}` လုံး"
             )
 
             await client.send_audio(
                 chat_id=cq.message.chat.id,
                 audio=out_file,
-                title=f"{v_data['name']} - Burmese TTS",
+                title=f"{v_name} - Burmese TTS",
                 caption=caption_text,
                 reply_to_message_id=cq.message.reply_to_message.id if cq.message.reply_to_message else None
             )
@@ -346,7 +473,6 @@ async def handle_callback(client, cq: CallbackQuery):
             if os.path.exists(out_file):
                 os.remove(out_file)
 
-# --- RUN BOT ---
 if __name__ == "__main__":
     print("✅ 14-Voice Burmese TTS Bot is online!")
     app.run()
