@@ -7,13 +7,13 @@ from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import UserNotParticipant
 
 # --- CONFIGURATION ---
-API_ID = int(os.environ.get("API_ID", 2040))
-API_HASH = os.environ.get("API_HASH", "b18441a1ff607e10a989891a5462e627")
+API_ID = int(os.environ.get("32971636", 2040))
+API_HASH = os.environ.get("54178f4e37ec82caaa218ff1a2d8e8c0", "b18441a1ff607e10a989891a5462e627")
 BOT_TOKEN = (
     os.environ.get("BOT_TOKEN")
     or os.environ.get("TELEGRAM_BOT_TOKEN")
     or os.environ.get("TOKEN")
-    or "YOUR_BOT_TOKEN"
+    or "9283733881:AAFInOE6EZoB6Ypb7WppgT8lFfkmqMBUolU"
 )
 
 # Force Join Channels
